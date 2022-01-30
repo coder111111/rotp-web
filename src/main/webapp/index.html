@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Main page</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <script type="text/javascript" charset="utf-8" src="teavm/runtime.js"></script>
+    <script type="text/javascript" charset="utf-8" src="teavm/classes.js"></script>
+    <link href="style.css" rel="stylesheet" type="text/css" >
+<script type="module">
+  // to be able to use examples, we need to import Three.js as a module
+  // and then add it to globalThis to be accessible by Three.java and TeaVM
+  import * as THREE from './build/three.module.js';
+  import { FontLoader, Font } from './three/jsm/loaders/FontLoader.js';
+  import { TextGeometry } from './three/jsm/geometries/TextGeometry.js';
+  import * as BufferGeometryUtils from './three/jsm/utils/BufferGeometryUtils.js';
+  globalThis.THREE = THREE;
+  globalThis.FontLoader = FontLoader;
+  globalThis.Font = Font;
+  globalThis.TextGeometry = TextGeometry;
+  globalThis.BufferGeometryUtils = BufferGeometryUtils;
+</script>
+  </head>
+  <body onload="main()">
+  </body>
+</html>
