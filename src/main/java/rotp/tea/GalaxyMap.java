@@ -14,6 +14,7 @@ import eu.bebendorf.threejava.material.LineBasicMaterial;
 import eu.bebendorf.threejava.material.MeshBasicMaterial;
 import eu.bebendorf.threejava.math.Box3;
 import eu.bebendorf.threejava.math.Color;
+import eu.bebendorf.threejava.math.Vector2;
 import eu.bebendorf.threejava.objects.Line;
 import eu.bebendorf.threejava.objects.Mesh;
 import eu.bebendorf.threejava.path.Font;
@@ -36,9 +37,11 @@ import org.teavm.jso.core.JSObjects;
 import org.teavm.jso.dom.events.Event;
 import org.teavm.jso.dom.events.EventListener;
 import org.teavm.jso.dom.events.MouseEvent;
+import org.teavm.jso.dom.events.TouchEvent;
 import org.teavm.jso.dom.events.WheelEvent;
 import org.teavm.jso.dom.html.HTMLCanvasElement;
 import org.teavm.jso.dom.xml.Document;
+import org.teavm.jso.json.JSON;
 
 public class GalaxyMap implements AnimationFrameCallback {
     
@@ -66,7 +69,8 @@ public class GalaxyMap implements AnimationFrameCallback {
     private Font font;
             
     private boolean mouseButtonDown = false;
-    private boolean touchStarted = false;
+    private Vector2 touchPanStart = null;
+    private Float touchZoomStart = null;
     
     int width, height;
 
@@ -220,13 +224,95 @@ public class GalaxyMap implements AnimationFrameCallback {
             mouseButtonDown = false;
         });
 
-        // TODO: Touch events
-//        canvas.addEventListener("touchstart", (TouchEvent event) -> {
-//            touchStarted = true;
-//        });
-//        canvas.addEventListener("touchmove", (TouchEvent event) -> {
-//            touchStarted = true;
-//        });
+        // Touch events
+        System.out.println("Touch register start");
+        canvas.addEventListener("touchstart", (TouchEvent event) -> {
+            updateTouchState(event);
+            System.out.println("Touch start "+touchDump());
+        });
+        canvas.addEventListener("touchmove", (TouchEvent event) -> {
+            System.out.println("Touch move "+touchDump());
+            applyTouchMove(event);
+            updateTouchState(event);
+        });
+        canvas.addEventListener("touchend", (TouchEvent event) -> {
+            updateTouchState(event);
+            System.out.println("Touch end "+touchDump());
+        });
+        canvas.addEventListener("touchcancel", (TouchEvent event) -> {
+            updateTouchState(event);
+            System.out.println("Touch cancel "+touchDump());
+        });
+        System.out.println("Touch register end");
+    }
+    
+    private void applyTouchMove(TouchEvent event) {
+        if (touchPanStart != null) {
+            float ratio = 0.004f * camera.getPosition().getZ();
+            float x1 = touchPanStart.getX();
+            float y1 = touchPanStart.getY();
+            int x2 = event.getTouches().get(0).getClientX();
+            int y2 = event.getTouches().get(0).getClientY();
+
+            camera.getPosition().setX(camera.getPosition().getX() - (float) (x2-x1) * ratio);
+            // invert Y
+            camera.getPosition().setY(camera.getPosition().getY() + (float) (y2-y1) * ratio);
+            System.out.println("Touch move camera");
+        } else if (touchZoomStart != null) {
+            float touchZoomNow = touchDistance(event);
+            float diff = touchZoomNow - touchZoomStart;
+            if (camera.getPosition().getZ() < 3 && diff > 0) {
+                return;
+            }
+            float cameraTarget = camera.getPosition().getZ() - diff*0.15f;
+            camera.getPosition().setZ(cameraTarget);
+            System.out.println("Touch zoom camera");
+        }
+    }
+
+    private void updateTouchState(TouchEvent event) {
+        if (event.getTouches().getLength() == 1) {
+            touchPanStart = Three.Vector2(event.getTouches().get(0).getClientX(),
+                    event.getTouches().get(0).getClientY());
+            touchZoomStart = null;
+        } else if (event.getTouches().getLength() > 1) {
+            touchPanStart = null;
+            touchZoomStart = touchDistance(event);
+        } else {
+            touchPanStart = null;
+            touchZoomStart = null;
+        }
+    }
+    private String touchDump() {
+        String s;
+        if (touchPanStart != null) {
+            s = "pan="+JSON.stringify(touchPanStart);
+        } else {
+            s = "pan=null";
+        }
+        if (touchZoomStart != null) {
+            s += " zoom="+Float.toString(touchZoomStart);
+        } else {
+            s += " zoom=null";
+        }
+        return s;
+    }
+    private Float touchDistance(TouchEvent event) {
+        if (event.getTouches().getLength() < 2) {
+            System.out.println("Pinch zoom event has too few touches");
+            return null;
+        }
+        // ignore other touch events, only take first two
+        int x1 = event.getTouches().get(0).getClientX();
+        int y1 = event.getTouches().get(0).getClientY();
+        int x2 = event.getTouches().get(1).getClientX();
+        int y2 = event.getTouches().get(1).getClientY();
+//        System.out.println("Touch event x1="+x1+" y1="+y1+" x2="+x2+" y2="+y2);
+        float sq = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
+//        System.out.println("Touch event sq="+sq);
+        float dist = (float)Math.sqrt(sq);
+//        System.out.println("Touch event dist="+dist);
+        return dist;
     }
 
     private void initCube() {
