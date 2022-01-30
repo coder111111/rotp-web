@@ -73,7 +73,7 @@ public class GalaxyMap implements AnimationFrameCallback {
     private Float touchZoomStart = null;
     
     int width, height;
-
+    
     public GalaxyMap(Galaxy galaxy) throws IOException {
         this.galaxy = galaxy;
         this.width = Window.current().getInnerWidth();
@@ -197,6 +197,7 @@ public class GalaxyMap implements AnimationFrameCallback {
                 cameraTarget = 0.9f * camera.getPosition().getZ();
             }
             camera.getPosition().setZ(cameraTarget);
+            draw();
         });
 
         canvas.addEventListener("mousedown", (MouseEvent event) -> {
@@ -215,6 +216,7 @@ public class GalaxyMap implements AnimationFrameCallback {
                 camera.getPosition().setX(camera.getPosition().getX() - (float) event.getMovementX() * ratio);
                 // invert Y axis
                 camera.getPosition().setY(camera.getPosition().getY() + (float) event.getMovementY() * ratio);
+                draw();
             }
         });
         canvas.addEventListener("mouseup", (MouseEvent event) -> {
@@ -258,6 +260,7 @@ public class GalaxyMap implements AnimationFrameCallback {
             // invert Y
             camera.getPosition().setY(camera.getPosition().getY() + (float) (y2-y1) * ratio);
             System.out.println("Touch move camera");
+            draw();
         } else if (touchZoomStart != null) {
             float touchZoomNow = touchDistance(event);
             float diff = touchZoomNow - touchZoomStart;
@@ -267,6 +270,7 @@ public class GalaxyMap implements AnimationFrameCallback {
             float cameraTarget = camera.getPosition().getZ() - diff*0.15f;
             camera.getPosition().setZ(cameraTarget);
             System.out.println("Touch zoom camera");
+            draw();
         }
     }
 
@@ -441,6 +445,10 @@ public class GalaxyMap implements AnimationFrameCallback {
         return canvas;
     }
     
+    public void draw() {
+        Window.requestAnimationFrame(this);
+    }
+    
     @Override
     public void onAnimationFrame(double timestamp) {
         if (camera.getPosition().getZ() > 50) {
@@ -459,7 +467,6 @@ public class GalaxyMap implements AnimationFrameCallback {
 
             renderer.render(scene, camera);
         }
-        Window.requestAnimationFrame(this);
     }
 
     private void ownerShape(StarSystem ss, Empire ee) {
